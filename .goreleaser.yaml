@@ -16,10 +16,15 @@ before:
     - go generate ./...
 
 builds:
-  - env:
-      - CGO_ENABLED=0
+  - main: ./cmd/velo/
+    binary: velo-daemon
+    id: velo-daemon
     ldflags:
       - "-X 'github.com/jasonlovesdoggo/velo/pkg/version.Version={{.Tag}}'"
+  - main: ./cmd/cli/
+    id: cli
+    binary: velo
+
     goos:
       - linux
       - windows
