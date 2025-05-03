@@ -1,0 +1,39 @@
+// Root proto definition for service-to-service and gRPC Gateway
+syntax = "proto3";
+
+package velo;
+
+service DeploymentService {
+  rpc Deploy (DeployRequest) returns (DeployResponse);
+  rpc Rollback (RollbackRequest) returns (GenericResponse);
+  rpc GetStatus (StatusRequest) returns (StatusResponse);
+}
+
+message DeployRequest {
+  string service_name = 1;
+  string image = 2;
+  map<string, string> env = 3;
+}
+
+message DeployResponse {
+  string deployment_id = 1;
+  string status = 2;
+}
+
+message RollbackRequest {
+  string deployment_id = 1;
+}
+
+message GenericResponse {
+  string message = 1;
+  bool success = 2;
+}
+
+message StatusRequest {
+  string deployment_id = 1;
+}
+
+message StatusResponse {
+  string status = 1;
+  string logs = 2;
+}
