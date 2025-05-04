@@ -3,38 +3,13 @@ package agent
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
+	"github.com/jasonlovesdoggo/velo/internal/logs"
 )
-
-// ContainerAgent is responsible for monitoring the local node and containers
-type ContainerAgent struct {
-	client        *client.Client
-	hostname      string
-	nodeID        string
-	isManager     bool
-	collectTicker *time.Ticker
-	healthTicker  *time.Ticker
-	ctx           context.Context
-	cancel        context.CancelFunc
-	containers    []ContainerInfo
-	containersMu  sync.RWMutex
-}
-
-// ContainerInfo contains information about a container
-type ContainerInfo struct {
-	ID      string
-	Name    string
-	Image   string
-	Status  string
-	Running bool
-	Health  string
-}
 
 // NewContainerAgent creates a new ContainerAgent
 func NewContainerAgent() (*ContainerAgent, error) {
@@ -90,7 +65,7 @@ func (a *ContainerAgent) Start() error {
 			select {
 			case <-a.collectTicker.C:
 				if err := a.collectContainers(); err != nil {
-					log.Printf("Error collecting containers: %v", err)
+					logs.Error("Error collecting containers", "error", err)
 				}
 			case <-a.ctx.Done():
 				return
@@ -105,7 +80,7 @@ func (a *ContainerAgent) Start() error {
 			select {
 			case <-a.healthTicker.C:
 				if err := a.checkContainerHealth(); err != nil {
-					log.Printf("Error checking container health: %v", err)
+					logs.Error("Error checking container health", "error", err)
 				}
 			case <-a.ctx.Done():
 				return
@@ -113,8 +88,8 @@ func (a *ContainerAgent) Start() error {
 		}
 	}()
 
-	log.Printf("Container agent started on node %s (ID: %s, Manager: %v)",
-		a.hostname, a.nodeID, a.isManager)
+	logs.Info("Container agent started",
+		"node", a.hostname, "nodeID", a.nodeID, "isManager", a.isManager)
 	return nil
 }
 
@@ -127,14 +102,14 @@ func (a *ContainerAgent) Stop() {
 		a.healthTicker.Stop()
 	}
 	a.cancel()
-	log.Printf("Container agent stopped on node %s", a.hostname)
+	logs.Info("Container agent stopped", "node", a.hostname)
 }
 
 // collectContainers collects information about running containers
 func (a *ContainerAgent) collectContainers() error {
 	// For now, just log that we're collecting containers
 	// In a real implementation, this would use the Docker API to list containers
-	log.Printf("Collecting container information on node %s", a.hostname)
+	logs.Info("Collecting container information", "node", a.hostname)
 
 	// Simulate container collection with a placeholder
 	a.containersMu.Lock()
@@ -157,7 +132,7 @@ func (a *ContainerAgent) collectContainers() error {
 func (a *ContainerAgent) checkContainerHealth() error {
 	// For now, just log that we're checking container health
 	// In a real implementation, this would use the Docker API to check container health
-	log.Printf("Checking container health on node %s", a.hostname)
+	logs.Info("Checking container health", "node", a.hostname)
 	return nil
 }
 
