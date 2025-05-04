@@ -35,25 +35,8 @@ Start the management server:
 
 The server will start on port 50051 by default.
 
-### Using the Client
+Please see the [CLI documentation](./cmd/cli/README.md) for available commands and options.
 
-Deploy a service:
-
-```bash
-./bin/velo-client --action=deploy --service=my-service --image=nginx:latest
-```
-
-Check the status of a deployment:
-
-```bash
-./bin/velo-client --action=status --id=<deployment-id>
-```
-
-Rollback a deployment:
-
-```bash
-./bin/velo-client --action=rollback --id=<deployment-id>
-```
 
 ### Running Tests
 
