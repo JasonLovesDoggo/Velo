@@ -11,7 +11,7 @@
 - [ ] Manual deployment definition (YAML/Compose)
 - [ ] Basic service CRUD (Create/Update/Delete)
 - [ ] Container status dashboard (running, error, restarting)
-- [ ] Persisting configs to disk or DB
+- [x] Persisting configs to disk or DB
 - [ ] Simple user login with static credentials (no OAuth yet)
 
 ---
