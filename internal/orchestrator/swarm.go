@@ -7,9 +7,9 @@ import (
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 	"github.com/jasonlovesdoggo/velo/internal/config"
+	"github.com/jasonlovesdoggo/velo/internal/utils"
 	"github.com/jasonlovesdoggo/velo/pkg/core/node"
 	"log"
-	"time"
 )
 
 func DeployToSwarm(def config.ServiceDefinition) (string, error) {
@@ -53,7 +53,7 @@ func DeployToSwarm(def config.ServiceDefinition) (string, error) {
 		Annotations:  annotations,
 		TaskTemplate: taskTemplate,
 		Mode: swarm.ServiceMode{
-			Replicated: &swarm.ReplicatedService{Replicas: uint64Ptr(uint64(def.Replicas))},
+			Replicated: &swarm.ReplicatedService{Replicas: utils.Uint64Ptr(uint64(def.Replicas))},
 		},
 	}
 
@@ -119,12 +119,4 @@ func ListNodes() ([]node.Info, error) {
 		nodes = append(nodes, nodeInfo)
 	}
 	return nodes, nil
-}
-
-func uint64Ptr(n uint64) *uint64 {
-	return &n
-}
-
-func durationPtr(d time.Duration) *time.Duration {
-	return &d
 }

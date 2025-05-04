@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/jasonlovesdoggo/velo/internal/utils"
 	"sync"
 	"time"
 
@@ -263,7 +264,7 @@ func (m *SwarmManager) DeployService(def config.ServiceDefinition) (string, erro
 			},
 		},
 		Mode: swarm.ServiceMode{
-			Replicated: &swarm.ReplicatedService{Replicas: uint64Ptr(uint64(def.Replicas))},
+			Replicated: &swarm.ReplicatedService{Replicas: utils.Uint64Ptr(uint64(def.Replicas))},
 		},
 	}
 
@@ -395,10 +396,6 @@ func (m *SwarmManager) ListServices() ([]config.DeploymentStatus, error) {
 }
 
 // Helper functions
-
-func uint64Ptr(n uint64) *uint64 {
-	return &n
-}
 
 func getReplicaCount(spec swarm.ServiceSpec) int {
 	if spec.Mode.Replicated != nil && spec.Mode.Replicated.Replicas != nil {
