@@ -29,7 +29,7 @@ builds:
     binary: veloctl
 
     ldflags:
-      - "-X 'github.com/jasonlovesdoggo/velo/pkg/version.Version={{.Tag}}'"
+      - "-X 'github.com/jasonlovesdoggo/velo/pkg/core.Version={{.Tag}}'"
     goos:
       - linux
       - windows
