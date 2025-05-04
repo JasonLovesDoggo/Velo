@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/jasonlovesdoggo/velo/internal/server"
+	"github.com/jasonlovesdoggo/velo/api/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -56,11 +56,11 @@ func main() {
 }
 
 func deployService(ctx context.Context, conn *grpc.ClientConn, serviceName, image string) {
-	// Create a client
-	client := &grpcClient{conn: conn}
+	// Create a client using the generated client interface
+	client := proto.NewDeploymentServiceClient(conn)
 
 	// Create a deploy request
-	req := &server.DeployRequest{
+	req := &proto.DeployRequest{
 		ServiceName: serviceName,
 		Image:       image,
 		Env:         map[string]string{"ENV": "test"},
@@ -76,11 +76,11 @@ func deployService(ctx context.Context, conn *grpc.ClientConn, serviceName, imag
 }
 
 func getStatus(ctx context.Context, conn *grpc.ClientConn, deploymentID string) {
-	// Create a client
-	client := &grpcClient{conn: conn}
+	// Create a client using the generated client interface
+	client := proto.NewDeploymentServiceClient(conn)
 
 	// Create a status request
-	req := &server.StatusRequest{
+	req := &proto.StatusRequest{
 		DeploymentId: deploymentID,
 	}
 
@@ -94,11 +94,11 @@ func getStatus(ctx context.Context, conn *grpc.ClientConn, deploymentID string) 
 }
 
 func rollbackDeployment(ctx context.Context, conn *grpc.ClientConn, deploymentID string) {
-	// Create a client
-	client := &grpcClient{conn: conn}
+	// Create a client using the generated client interface
+	client := proto.NewDeploymentServiceClient(conn)
 
 	// Create a rollback request
-	req := &server.RollbackRequest{
+	req := &proto.RollbackRequest{
 		DeploymentId: deploymentID,
 	}
 
@@ -109,42 +109,4 @@ func rollbackDeployment(ctx context.Context, conn *grpc.ClientConn, deploymentID
 	}
 
 	fmt.Printf("Rollback %s: %s\n", map[bool]string{true: "succeeded", false: "failed"}[resp.Success], resp.Message)
-}
-
-// grpcClient is a client for the DeploymentService
-type grpcClient struct {
-	conn *grpc.ClientConn
-}
-
-// Deploy calls the Deploy method on the server
-func (c *grpcClient) Deploy(ctx context.Context, req *server.DeployRequest) (*server.DeployResponse, error) {
-	// Create a raw gRPC request
-	var resp server.DeployResponse
-	err := c.conn.Invoke(ctx, "/velo.DeploymentService/Deploy", req, &resp)
-	if err != nil {
-		return nil, err
-	}
-	return &resp, nil
-}
-
-// GetStatus calls the GetStatus method on the server
-func (c *grpcClient) GetStatus(ctx context.Context, req *server.StatusRequest) (*server.StatusResponse, error) {
-	// Create a raw gRPC request
-	var resp server.StatusResponse
-	err := c.conn.Invoke(ctx, "/velo.DeploymentService/GetStatus", req, &resp)
-	if err != nil {
-		return nil, err
-	}
-	return &resp, nil
-}
-
-// Rollback calls the Rollback method on the server
-func (c *grpcClient) Rollback(ctx context.Context, req *server.RollbackRequest) (*server.GenericResponse, error) {
-	// Create a raw gRPC request
-	var resp server.GenericResponse
-	err := c.conn.Invoke(ctx, "/velo.DeploymentService/Rollback", req, &resp)
-	if err != nil {
-		return nil, err
-	}
-	return &resp, nil
 }

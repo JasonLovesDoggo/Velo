@@ -6,8 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jasonlovesdoggo/velo/internal/server"
+	"github.com/jasonlovesdoggo/velo/api/proto"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
 )
 
@@ -19,7 +20,7 @@ func setupBufConn() (*grpc.ClientConn, func()) {
 	s := grpc.NewServer()
 
 	// Register a mock service
-	server.RegisterDeploymentServiceServer(s, &mockDeploymentService{})
+	proto.RegisterDeploymentServiceServer(s, &mockDeploymentService{})
 
 	// Start the server
 	go func() {
@@ -37,7 +38,7 @@ func setupBufConn() (*grpc.ClientConn, func()) {
 		context.Background(),
 		"bufnet",
 		grpc.WithContextDialer(dialer),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
 		panic(err)
@@ -52,28 +53,29 @@ func setupBufConn() (*grpc.ClientConn, func()) {
 
 // mockDeploymentService is a mock implementation of the DeploymentServiceServer interface
 type mockDeploymentService struct {
-	// No embedded type needed, we'll implement all required methods
+	// Embed the UnimplementedDeploymentServiceServer to ensure forward compatibility
+	proto.UnimplementedDeploymentServiceServer
 }
 
 // Deploy implements the Deploy method of the DeploymentServiceServer interface
-func (s *mockDeploymentService) Deploy(ctx context.Context, req *server.DeployRequest) (*server.DeployResponse, error) {
-	return &server.DeployResponse{
+func (s *mockDeploymentService) Deploy(ctx context.Context, req *proto.DeployRequest) (*proto.DeployResponse, error) {
+	return &proto.DeployResponse{
 		DeploymentId: "test-deployment-id",
 		Status:       "deployed",
 	}, nil
 }
 
 // Rollback implements the Rollback method of the DeploymentServiceServer interface
-func (s *mockDeploymentService) Rollback(ctx context.Context, req *server.RollbackRequest) (*server.GenericResponse, error) {
-	return &server.GenericResponse{
+func (s *mockDeploymentService) Rollback(ctx context.Context, req *proto.RollbackRequest) (*proto.GenericResponse, error) {
+	return &proto.GenericResponse{
 		Message: "Deployment rolled back successfully",
 		Success: true,
 	}, nil
 }
 
 // GetStatus implements the GetStatus method of the DeploymentServiceServer interface
-func (s *mockDeploymentService) GetStatus(ctx context.Context, req *server.StatusRequest) (*server.StatusResponse, error) {
-	return &server.StatusResponse{
+func (s *mockDeploymentService) GetStatus(ctx context.Context, req *proto.StatusRequest) (*proto.StatusResponse, error) {
+	return &proto.StatusResponse{
 		Status: "running",
 		Logs:   "Service is running",
 	}, nil
@@ -83,15 +85,15 @@ func TestDeployService(t *testing.T) {
 	conn, cleanup := setupBufConn()
 	defer cleanup()
 
-	// Create a client
-	client := &grpcClient{conn: conn}
+	// Create a client using the generated client interface
+	client := proto.NewDeploymentServiceClient(conn)
 
 	// Create a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	// Create a deploy request
-	req := &server.DeployRequest{
+	req := &proto.DeployRequest{
 		ServiceName: "test-service",
 		Image:       "nginx:latest",
 		Env:         map[string]string{"ENV": "test"},
@@ -117,15 +119,15 @@ func TestGetStatus(t *testing.T) {
 	conn, cleanup := setupBufConn()
 	defer cleanup()
 
-	// Create a client
-	client := &grpcClient{conn: conn}
+	// Create a client using the generated client interface
+	client := proto.NewDeploymentServiceClient(conn)
 
 	// Create a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	// Create a status request
-	req := &server.StatusRequest{
+	req := &proto.StatusRequest{
 		DeploymentId: "test-deployment-id",
 	}
 
@@ -149,15 +151,15 @@ func TestRollbackDeployment(t *testing.T) {
 	conn, cleanup := setupBufConn()
 	defer cleanup()
 
-	// Create a client
-	client := &grpcClient{conn: conn}
+	// Create a client using the generated client interface
+	client := proto.NewDeploymentServiceClient(conn)
 
 	// Create a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	// Create a rollback request
-	req := &server.RollbackRequest{
+	req := &proto.RollbackRequest{
 		DeploymentId: "test-deployment-id",
 	}
 
