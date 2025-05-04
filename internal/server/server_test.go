@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/jasonlovesdoggo/velo/api/proto"
 	"github.com/jasonlovesdoggo/velo/internal/config"
 	"github.com/jasonlovesdoggo/velo/internal/orchestrator/manager"
 )
@@ -40,7 +41,7 @@ func (m *MockManager) GetServiceStatus(serviceID string) (config.DeploymentStatu
 func TestDeploy(t *testing.T) {
 	tests := []struct {
 		name           string
-		req            *DeployRequest
+		req            *proto.DeployRequest
 		mockID         string
 		mockErr        error
 		expectedID     string
@@ -49,7 +50,7 @@ func TestDeploy(t *testing.T) {
 	}{
 		{
 			name: "Successful deployment",
-			req: &DeployRequest{
+			req: &proto.DeployRequest{
 				ServiceName: "test-service",
 				Image:       "nginx:latest",
 				Env:         map[string]string{"ENV": "test"},
@@ -62,7 +63,7 @@ func TestDeploy(t *testing.T) {
 		},
 		{
 			name: "Failed deployment",
-			req: &DeployRequest{
+			req: &proto.DeployRequest{
 				ServiceName: "test-service",
 				Image:       "nginx:latest",
 				Env:         map[string]string{"ENV": "test"},
@@ -115,19 +116,19 @@ func TestDeploy(t *testing.T) {
 func TestRollback(t *testing.T) {
 	tests := []struct {
 		name          string
-		req           *RollbackRequest
+		req           *proto.RollbackRequest
 		mockErr       error
 		expectSuccess bool
 	}{
 		{
 			name:          "Successful rollback",
-			req:           &RollbackRequest{DeploymentId: "service-123"},
+			req:           &proto.RollbackRequest{DeploymentId: "service-123"},
 			mockErr:       nil,
 			expectSuccess: true,
 		},
 		{
 			name:          "Failed rollback",
-			req:           &RollbackRequest{DeploymentId: "service-123"},
+			req:           &proto.RollbackRequest{DeploymentId: "service-123"},
 			mockErr:       errors.New("rollback failed"),
 			expectSuccess: false,
 		},
@@ -163,7 +164,7 @@ func TestRollback(t *testing.T) {
 func TestGetStatus(t *testing.T) {
 	tests := []struct {
 		name           string
-		req            *StatusRequest
+		req            *proto.StatusRequest
 		mockStatus     config.DeploymentStatus
 		mockErr        error
 		expectedStatus string
@@ -172,7 +173,7 @@ func TestGetStatus(t *testing.T) {
 	}{
 		{
 			name: "Successful status retrieval",
-			req:  &StatusRequest{DeploymentId: "service-123"},
+			req:  &proto.StatusRequest{DeploymentId: "service-123"},
 			mockStatus: config.DeploymentStatus{
 				ID:    "service-123",
 				State: "running",
@@ -185,7 +186,7 @@ func TestGetStatus(t *testing.T) {
 		},
 		{
 			name:        "Failed status retrieval",
-			req:         &StatusRequest{DeploymentId: "service-123"},
+			req:         &proto.StatusRequest{DeploymentId: "service-123"},
 			mockStatus:  config.DeploymentStatus{},
 			mockErr:     errors.New("status retrieval failed"),
 			expectError: true,
