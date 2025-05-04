@@ -7,13 +7,14 @@ import (
 	"time"
 
 	"github.com/jasonlovesdoggo/velo/api/proto"
+	"github.com/jasonlovesdoggo/velo/pkg/client"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
 )
 
-// setupBufConn creates a bufconn listener and returns a client connection
-func setupBufConn() (*grpc.ClientConn, func()) {
+// setupBufConn creates a bufconn listener and returns a server and a dialer function
+func setupBufConn() (*grpc.Server, func(context.Context, string) (net.Conn, error), func()) {
 	listener := bufconn.Listen(1024 * 1024)
 
 	// Create a gRPC server and register the test service
@@ -29,24 +30,13 @@ func setupBufConn() (*grpc.ClientConn, func()) {
 		}
 	}()
 
-	// Create a client connection
+	// Create a dialer function
 	dialer := func(context.Context, string) (net.Conn, error) {
 		return listener.Dial()
 	}
 
-	conn, err := grpc.DialContext(
-		context.Background(),
-		"bufnet",
-		grpc.WithContextDialer(dialer),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	// Return the connection and a cleanup function
-	return conn, func() {
-		conn.Close()
+	// Return the server, dialer, and a cleanup function
+	return s, dialer, func() {
 		s.Stop()
 	}
 }
@@ -81,26 +71,43 @@ func (s *mockDeploymentService) GetStatus(ctx context.Context, req *proto.Status
 	}, nil
 }
 
-func TestDeployService(t *testing.T) {
-	conn, cleanup := setupBufConn()
-	defer cleanup()
+// setupTestClient creates a test client that uses the provided dialer
+func setupTestClient(ctx context.Context, dialer func(context.Context, string) (net.Conn, error)) (*client.Client, error) {
+	// Create a connection using the dialer
+	conn, err := grpc.DialContext(
+		ctx,
+		"bufnet",
+		grpc.WithContextDialer(dialer),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		return nil, err
+	}
 
-	// Create a client using the generated client interface
-	client := proto.NewDeploymentServiceClient(conn)
+	// Create a client using the connection
+	c := client.NewClientWithConn(conn)
+
+	return c, nil
+}
+
+func TestDeployService(t *testing.T) {
+	// Set up the test server and client
+	_, dialer, cleanup := setupBufConn()
+	defer cleanup()
 
 	// Create a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Create a deploy request
-	req := &proto.DeployRequest{
-		ServiceName: "test-service",
-		Image:       "nginx:latest",
-		Env:         map[string]string{"ENV": "test"},
+	// Create a test client
+	c, err := setupTestClient(ctx, dialer)
+	if err != nil {
+		t.Fatalf("Failed to create test client: %v", err)
 	}
+	defer c.Close()
 
-	// Call the Deploy method
-	resp, err := client.Deploy(ctx, req)
+	// Deploy a service
+	resp, err := c.Deploy(ctx, "test-service", "nginx:latest", map[string]string{"ENV": "test"})
 	if err != nil {
 		t.Fatalf("Failed to deploy service: %v", err)
 	}
@@ -116,23 +123,23 @@ func TestDeployService(t *testing.T) {
 }
 
 func TestGetStatus(t *testing.T) {
-	conn, cleanup := setupBufConn()
+	// Set up the test server and client
+	_, dialer, cleanup := setupBufConn()
 	defer cleanup()
-
-	// Create a client using the generated client interface
-	client := proto.NewDeploymentServiceClient(conn)
 
 	// Create a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Create a status request
-	req := &proto.StatusRequest{
-		DeploymentId: "test-deployment-id",
+	// Create a test client
+	c, err := setupTestClient(ctx, dialer)
+	if err != nil {
+		t.Fatalf("Failed to create test client: %v", err)
 	}
+	defer c.Close()
 
-	// Call the GetStatus method
-	resp, err := client.GetStatus(ctx, req)
+	// Get the status
+	resp, err := c.GetStatus(ctx, "test-deployment-id")
 	if err != nil {
 		t.Fatalf("Failed to get status: %v", err)
 	}
@@ -148,23 +155,23 @@ func TestGetStatus(t *testing.T) {
 }
 
 func TestRollbackDeployment(t *testing.T) {
-	conn, cleanup := setupBufConn()
+	// Set up the test server and client
+	_, dialer, cleanup := setupBufConn()
 	defer cleanup()
-
-	// Create a client using the generated client interface
-	client := proto.NewDeploymentServiceClient(conn)
 
 	// Create a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Create a rollback request
-	req := &proto.RollbackRequest{
-		DeploymentId: "test-deployment-id",
+	// Create a test client
+	c, err := setupTestClient(ctx, dialer)
+	if err != nil {
+		t.Fatalf("Failed to create test client: %v", err)
 	}
+	defer c.Close()
 
-	// Call the Rollback method
-	resp, err := client.Rollback(ctx, req)
+	// Rollback a deployment
+	resp, err := c.Rollback(ctx, "test-deployment-id")
 	if err != nil {
 		t.Fatalf("Failed to rollback deployment: %v", err)
 	}

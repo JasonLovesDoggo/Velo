@@ -2,72 +2,127 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
+	"github.com/jasonlovesdoggo/velo/internal/config"
 	"log"
+	"os"
+	"strings"
 	"time"
 
-	"github.com/jasonlovesdoggo/velo/api/proto"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"github.com/jasonlovesdoggo/velo/pkg/client"
+	"github.com/spf13/cobra"
+)
+
+var (
+	serverAddr   string
+	serviceName  string
+	image        string
+	deploymentID string
+	timeout      time.Duration
+	envVars      []string
 )
 
 func main() {
-	// Define command-line flags
-	serverAddr := flag.String("server", "localhost:50051", "The server address in the format host:port")
-	action := flag.String("action", "deploy", "Action to perform: deploy, status, rollback, test-config")
-	serviceName := flag.String("service", "test-service", "Name of the service to deploy")
-	image := flag.String("image", "nginx:latest", "Docker image to deploy")
-	deploymentID := flag.String("id", "", "Deployment ID for status or rollback actions")
-	flag.Parse()
-
-	// Set up a connection to the server
-	conn, err := grpc.Dial(*serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatalf("Failed to connect: %v", err)
+	// Create the root command
+	rootCmd := &cobra.Command{
+		Use:   "veloctl",
+		Short: "Velo CLI - A command line interface for Velo",
+		Long: `Velo CLI is a command line interface for Velo, a lightweight, 
+self-hostable deployment and operations platform built on top of Docker Swarm.`,
 	}
-	defer conn.Close()
 
-	// Create a context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	// Add global flags
+	rootCmd.PersistentFlags().StringVar(&serverAddr, "server", "localhost:50051", "The server address in the format host:port")
+	rootCmd.PersistentFlags().DurationVar(&timeout, "timeout", 10*time.Second, "Timeout for API requests")
 
-	// Perform the requested action
-	switch *action {
-	case "deploy":
-		deployService(ctx, conn, *serviceName, *image)
-	case "status":
-		if *deploymentID == "" {
-			log.Fatal("Deployment ID is required for status action")
-		}
-		getStatus(ctx, conn, *deploymentID)
-	case "rollback":
-		if *deploymentID == "" {
-			log.Fatal("Deployment ID is required for rollback action")
-		}
-		rollbackDeployment(ctx, conn, *deploymentID)
-	case "test-config":
-		// This action doesn't require a connection to the server
-		cancel() // Cancel the context since we don't need it
-		testConfig()
-	default:
-		log.Fatalf("Unknown action: %s", *action)
+	// Create the deploy command
+	deployCmd := &cobra.Command{
+		Use:   "deploy",
+		Short: "Deploy a service",
+		Long:  `Deploy a service to the Velo platform.`,
+		Run:   runDeploy,
+	}
+	deployCmd.Flags().StringVar(&serviceName, "service", "test-service", "Name of the service to deploy")
+	deployCmd.Flags().StringVar(&image, "image", "nginx:latest", "Docker image to deploy")
+	deployCmd.Flags().StringArrayVar(&envVars, "env", []string{}, "Environment variables in the format KEY=VALUE")
+
+	// Create the status command
+	statusCmd := &cobra.Command{
+		Use:   "status",
+		Short: "Get the status of a deployment",
+		Long:  `Get the status of a deployment on the Velo platform.`,
+		Run:   runStatus,
+	}
+	statusCmd.Flags().StringVar(&deploymentID, "id", "", "Deployment ID")
+	statusCmd.MarkFlagRequired("id")
+
+	// Create the rollback command
+	rollbackCmd := &cobra.Command{
+		Use:   "rollback",
+		Short: "Rollback a deployment",
+		Long:  `Rollback a deployment on the Velo platform.`,
+		Run:   runRollback,
+	}
+	rollbackCmd.Flags().StringVar(&deploymentID, "id", "", "Deployment ID")
+	rollbackCmd.MarkFlagRequired("id")
+
+	validateCmd := &cobra.Command{
+		Use:   "validate",
+		Short: "Validate a configuration file",
+		Long:  `Test a configuration file for validity.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			pwd, err := os.Getwd()
+			if err != nil {
+				log.Fatalf("Failed to get current working directory: %v", err)
+			}
+			_, err = config.LoadConfigFromFile(pwd)
+			if err != nil {
+				log.Fatalf("Failed to load config file: %v", err)
+			} else {
+				fmt.Println("Config file is valid.")
+			}
+
+		},
+	}
+
+	// Add commands to the root command
+	rootCmd.AddCommand(deployCmd)
+	rootCmd.AddCommand(statusCmd)
+	rootCmd.AddCommand(rollbackCmd)
+	rootCmd.AddCommand(validateCmd)
+
+	// Execute the root command
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 }
 
-func deployService(ctx context.Context, conn *grpc.ClientConn, serviceName, image string) {
-	// Create a client using the generated client interface
-	client := proto.NewDeploymentServiceClient(conn)
+// runDeploy handles the deploy command
+func runDeploy(cmd *cobra.Command, args []string) {
+	// Create a context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 
-	// Create a deploy request
-	req := &proto.DeployRequest{
-		ServiceName: serviceName,
-		Image:       image,
-		Env:         map[string]string{"ENV": "test"},
+	// Create a client
+	c, err := client.NewClient(serverAddr)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
+	defer c.Close()
+
+	// Parse environment variables
+	env := make(map[string]string)
+	for _, e := range envVars {
+		parts := strings.SplitN(e, "=", 2)
+		if len(parts) != 2 {
+			log.Fatalf("Invalid environment variable format: %s. Expected KEY=VALUE", e)
+		}
+		env[parts[0]] = parts[1]
 	}
 
-	// Call the Deploy method
-	resp, err := client.Deploy(ctx, req)
+	// Deploy the service
+	resp, err := c.Deploy(ctx, serviceName, image, env)
 	if err != nil {
 		log.Fatalf("Failed to deploy service: %v", err)
 	}
@@ -75,17 +130,21 @@ func deployService(ctx context.Context, conn *grpc.ClientConn, serviceName, imag
 	fmt.Printf("Service deployed successfully!\nDeployment ID: %s\nStatus: %s\n", resp.DeploymentId, resp.Status)
 }
 
-func getStatus(ctx context.Context, conn *grpc.ClientConn, deploymentID string) {
-	// Create a client using the generated client interface
-	client := proto.NewDeploymentServiceClient(conn)
+// runStatus handles the status command
+func runStatus(cmd *cobra.Command, args []string) {
+	// Create a context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 
-	// Create a status request
-	req := &proto.StatusRequest{
-		DeploymentId: deploymentID,
+	// Create a client
+	c, err := client.NewClient(serverAddr)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
 	}
+	defer c.Close()
 
-	// Call the GetStatus method
-	resp, err := client.GetStatus(ctx, req)
+	// Get the status
+	resp, err := c.GetStatus(ctx, deploymentID)
 	if err != nil {
 		log.Fatalf("Failed to get status: %v", err)
 	}
@@ -93,17 +152,21 @@ func getStatus(ctx context.Context, conn *grpc.ClientConn, deploymentID string) 
 	fmt.Printf("Deployment Status: %s\nLogs: %s\n", resp.Status, resp.Logs)
 }
 
-func rollbackDeployment(ctx context.Context, conn *grpc.ClientConn, deploymentID string) {
-	// Create a client using the generated client interface
-	client := proto.NewDeploymentServiceClient(conn)
+// runRollback handles the rollback command
+func runRollback(cmd *cobra.Command, args []string) {
+	// Create a context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 
-	// Create a rollback request
-	req := &proto.RollbackRequest{
-		DeploymentId: deploymentID,
+	// Create a client
+	c, err := client.NewClient(serverAddr)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
 	}
+	defer c.Close()
 
-	// Call the Rollback method
-	resp, err := client.Rollback(ctx, req)
+	// Rollback the deployment
+	resp, err := c.Rollback(ctx, deploymentID)
 	if err != nil {
 		log.Fatalf("Failed to rollback deployment: %v", err)
 	}
