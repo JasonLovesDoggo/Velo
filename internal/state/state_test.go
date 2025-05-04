@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	stores "github.com/jasonlovesdoggo/velo/internal/state/stores"
-	_ "g
+	_ "github.com/mattn/go-sqlite3"
 	"os"
 	"path/filepath"
 	"strings"
@@ -117,7 +117,6 @@ func runStorePersistenceTest(t *testing.T, cfg Config) {
 	}
 	err = store1.Close()
 	if err != nil {
-		// Log warning for JSON as close is less critical, fail for SQLite
 		if cfg.Type == SQLiteBackend {
 			t.Fatalf("Phase 1: Failed to close store: %v", err)
 		} else {
