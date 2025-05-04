@@ -10,7 +10,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
-	"github.com/jasonlovesdoggo/velo/internal/deployment"
+	"github.com/jasonlovesdoggo/velo/internal/config"
 	"github.com/jasonlovesdoggo/velo/internal/log"
 	"github.com/jasonlovesdoggo/velo/pkg/core/node"
 )
@@ -251,7 +251,7 @@ func (m *SwarmManager) RemoveNode(nodeID string, force bool) error {
 }
 
 // DeployService deploys a service to the swarm
-func (m *SwarmManager) DeployService(def deployment.ServiceDefinition) (string, error) {
+func (m *SwarmManager) DeployService(def config.ServiceDefinition) (string, error) {
 	spec := swarm.ServiceSpec{
 		Annotations: swarm.Annotations{
 			Name: def.Name,
@@ -276,7 +276,7 @@ func (m *SwarmManager) DeployService(def deployment.ServiceDefinition) (string, 
 }
 
 // UpdateService updates an existing service
-func (m *SwarmManager) UpdateService(serviceID string, def deployment.ServiceDefinition) error {
+func (m *SwarmManager) UpdateService(serviceID string, def config.ServiceDefinition) error {
 	// Get current service spec
 	service, _, err := m.client.ServiceInspectWithRaw(context.Background(), serviceID, types.ServiceInspectOptions{})
 	if err != nil {
@@ -324,16 +324,16 @@ func (m *SwarmManager) RemoveService(serviceID string) error {
 }
 
 // GetServiceStatus returns the status of a service
-func (m *SwarmManager) GetServiceStatus(serviceID string) (deployment.DeploymentStatus, error) {
+func (m *SwarmManager) GetServiceStatus(serviceID string) (config.DeploymentStatus, error) {
 	service, _, err := m.client.ServiceInspectWithRaw(context.Background(), serviceID, types.ServiceInspectOptions{})
 	if err != nil {
-		return deployment.DeploymentStatus{}, fmt.Errorf("failed to inspect service: %w", err)
+		return config.DeploymentStatus{}, fmt.Errorf("failed to inspect service: %w", err)
 	}
 
 	// Get all tasks and filter for this service
 	allTasks, err := m.client.TaskList(context.Background(), types.TaskListOptions{})
 	if err != nil {
-		return deployment.DeploymentStatus{}, fmt.Errorf("failed to list tasks: %w", err)
+		return config.DeploymentStatus{}, fmt.Errorf("failed to list tasks: %w", err)
 	}
 
 	// Filter tasks for this service
@@ -362,10 +362,10 @@ func (m *SwarmManager) GetServiceStatus(serviceID string) (deployment.Deployment
 		}
 	}
 
-	return deployment.DeploymentStatus{
+	return config.DeploymentStatus{
 		ID:    serviceID,
 		State: state,
-		Service: deployment.ServiceDefinition{
+		Service: config.ServiceDefinition{
 			Name:  service.Spec.Annotations.Name,
 			Image: service.Spec.TaskTemplate.ContainerSpec.Image,
 			// Environment would need parsing from env strings back to map
@@ -375,13 +375,13 @@ func (m *SwarmManager) GetServiceStatus(serviceID string) (deployment.Deployment
 }
 
 // ListServices returns all services in the swarm
-func (m *SwarmManager) ListServices() ([]deployment.DeploymentStatus, error) {
+func (m *SwarmManager) ListServices() ([]config.DeploymentStatus, error) {
 	services, err := m.client.ServiceList(context.Background(), types.ServiceListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list services: %w", err)
 	}
 
-	result := make([]deployment.DeploymentStatus, 0, len(services))
+	result := make([]config.DeploymentStatus, 0, len(services))
 	for _, service := range services {
 		status, err := m.GetServiceStatus(service.ID)
 		if err != nil {

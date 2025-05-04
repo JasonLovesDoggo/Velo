@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/jasonlovesdoggo/velo/internal/deployment"
+	"github.com/jasonlovesdoggo/velo/internal/config"
 	"github.com/jasonlovesdoggo/velo/internal/log"
 	"github.com/jasonlovesdoggo/velo/internal/orchestrator/manager"
 	"google.golang.org/grpc"
@@ -65,7 +65,7 @@ func (s *DeploymentServer) Deploy(ctx context.Context, req *DeployRequest) (*Dep
 	log.Info("Received Deploy request", "service", req.ServiceName, "image", req.Image)
 
 	// Convert the request to a ServiceDefinition
-	serviceDef := deployment.ServiceDefinition{
+	serviceDef := config.ServiceDefinition{
 		Name:        req.ServiceName,
 		Image:       req.Image,
 		Environment: req.Env,

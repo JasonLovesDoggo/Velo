@@ -1,4 +1,4 @@
-package deployment
+package config
 
 func (s *ServiceDefinition) ToEnv() []string {
 	var env []string

@@ -6,12 +6,12 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
-	"github.com/jasonlovesdoggo/velo/internal/deployment"
+	"github.com/jasonlovesdoggo/velo/internal/config"
 	"github.com/jasonlovesdoggo/velo/pkg/core/node"
 	"log"
 )
 
-func DeployToSwarm(def deployment.ServiceDefinition) (string, error) {
+func DeployToSwarm(def config.ServiceDefinition) (string, error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return "", err
@@ -45,18 +45,18 @@ func RollbackDeployment(id string) error {
 	return nil
 }
 
-func GetDeploymentStatus(id string) (deployment.DeploymentStatus, error) {
+func GetDeploymentStatus(id string) (config.DeploymentStatus, error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		return deployment.DeploymentStatus{}, err
+		return config.DeploymentStatus{}, err
 	}
 	service, _, err := cli.ServiceInspectWithRaw(context.Background(), id, types.ServiceInspectOptions{})
 	if err != nil {
-		return deployment.DeploymentStatus{}, err
+		return config.DeploymentStatus{}, err
 	}
 
 	data, _ := json.MarshalIndent(service, "", "  ")
-	return deployment.DeploymentStatus{
+	return config.DeploymentStatus{
 		ID:    id,
 		State: "running",
 		Logs:  string(data),
@@ -73,7 +73,7 @@ func ListNodes() ([]node.Info, error) {
 		return nil, err
 	}
 
-	nodes := []node.Info{}
+	var nodes []node.Info
 	for _, n := range swarmNodes {
 		nodeInfo := node.Info{
 			ID:           n.ID,

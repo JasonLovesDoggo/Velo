@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/jasonlovesdoggo/velo/internal/deployment"
+	"github.com/jasonlovesdoggo/velo/internal/config"
 	"github.com/jasonlovesdoggo/velo/internal/orchestrator/manager"
 )
 
@@ -15,7 +15,7 @@ type MockManager struct {
 	DeployServiceID  string
 	DeployServiceErr error
 	RemoveServiceErr error
-	ServiceStatus    deployment.DeploymentStatus
+	ServiceStatus    config.DeploymentStatus
 	ServiceStatusErr error
 }
 
@@ -23,7 +23,7 @@ type MockManager struct {
 var _ manager.Manager = (*MockManager)(nil)
 
 // DeployService mocks the Manager's DeployService method
-func (m *MockManager) DeployService(def deployment.ServiceDefinition) (string, error) {
+func (m *MockManager) DeployService(def config.ServiceDefinition) (string, error) {
 	return m.DeployServiceID, m.DeployServiceErr
 }
 
@@ -33,7 +33,7 @@ func (m *MockManager) RemoveService(serviceID string) error {
 }
 
 // GetServiceStatus mocks the Manager's GetServiceStatus method
-func (m *MockManager) GetServiceStatus(serviceID string) (deployment.DeploymentStatus, error) {
+func (m *MockManager) GetServiceStatus(serviceID string) (config.DeploymentStatus, error) {
 	return m.ServiceStatus, m.ServiceStatusErr
 }
 
@@ -164,7 +164,7 @@ func TestGetStatus(t *testing.T) {
 	tests := []struct {
 		name           string
 		req            *StatusRequest
-		mockStatus     deployment.DeploymentStatus
+		mockStatus     config.DeploymentStatus
 		mockErr        error
 		expectedStatus string
 		expectedLogs   string
@@ -173,7 +173,7 @@ func TestGetStatus(t *testing.T) {
 		{
 			name: "Successful status retrieval",
 			req:  &StatusRequest{DeploymentId: "service-123"},
-			mockStatus: deployment.DeploymentStatus{
+			mockStatus: config.DeploymentStatus{
 				ID:    "service-123",
 				State: "running",
 				Logs:  "Service is running",
@@ -186,7 +186,7 @@ func TestGetStatus(t *testing.T) {
 		{
 			name:        "Failed status retrieval",
 			req:         &StatusRequest{DeploymentId: "service-123"},
-			mockStatus:  deployment.DeploymentStatus{},
+			mockStatus:  config.DeploymentStatus{},
 			mockErr:     errors.New("status retrieval failed"),
 			expectError: true,
 		},
