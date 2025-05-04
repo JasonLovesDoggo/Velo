@@ -10,7 +10,7 @@ service DeploymentService {
   rpc GetStatus (StatusRequest) returns (StatusResponse);
 }
 
-message DeployRequest {
+message DeployRequest { // todo: expand with the additional fields such as replicas, cpu, memory, etc.
   string service_name = 1;
   string image = 2;
   map<string, string> env = 3;
