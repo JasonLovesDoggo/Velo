@@ -15,7 +15,7 @@ import (
 func main() {
 	// Define command-line flags
 	serverAddr := flag.String("server", "localhost:50051", "The server address in the format host:port")
-	action := flag.String("action", "deploy", "Action to perform: deploy, status, rollback")
+	action := flag.String("action", "deploy", "Action to perform: deploy, status, rollback, test-config")
 	serviceName := flag.String("service", "test-service", "Name of the service to deploy")
 	image := flag.String("image", "nginx:latest", "Docker image to deploy")
 	deploymentID := flag.String("id", "", "Deployment ID for status or rollback actions")
@@ -46,6 +46,10 @@ func main() {
 			log.Fatal("Deployment ID is required for rollback action")
 		}
 		rollbackDeployment(ctx, conn, *deploymentID)
+	case "test-config":
+		// This action doesn't require a connection to the server
+		cancel() // Cancel the context since we don't need it
+		testConfig()
 	default:
 		log.Fatalf("Unknown action: %s", *action)
 	}

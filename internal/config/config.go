@@ -3,9 +3,10 @@ package config
 import (
 	"fmt"
 	"github.com/jasonlovesdoggo/velo/internal/log"
+	"github.com/spf13/viper"
 	"os"
+	"path/filepath"
 )
-import "github.com/BurntSushi/toml"
 
 func LoadConfigFromFile(directoryPath string) (*ServiceDefinition, error) {
 	// Load the config file
@@ -38,14 +39,24 @@ func validateConfig(config *ServiceDefinition) error {
 
 func loadConfig(directory string) (*ServiceDefinition, error) {
 	for _, dir := range DirNames {
-		filePath := fmt.Sprintf("%s/%s/%s", directory, dir, FileName)
+		filePath := filepath.Join(directory, dir, FileName)
 		if _, err := os.Stat(filePath); err == nil {
 			// File exists, load it
-			var config ServiceDefinition
-			if _, err := toml.DecodeFile(filePath, &config); err != nil {
-				log.Error("Failed to decode config file", "file", filePath, "error", err)
+			v := viper.New()
+			v.SetConfigFile(filePath)
+			v.SetConfigType("toml") // Explicitly set config type to TOML as requested
+
+			if err := v.ReadInConfig(); err != nil {
+				log.Error("Failed to read config file", "file", filePath, "error", err)
 				return nil, ErrInvalidConfig
 			}
+
+			var config ServiceDefinition
+			if err := v.Unmarshal(&config); err != nil {
+				log.Error("Failed to unmarshal config", "file", filePath, "error", err)
+				return nil, ErrInvalidConfig
+			}
+
 			return &config, nil
 		} else if os.IsNotExist(err) {
 			// File does not exist, continue to the next directory
