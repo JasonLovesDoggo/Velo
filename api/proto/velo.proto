@@ -3,6 +3,8 @@ syntax = "proto3";
 
 package velo;
 
+option go_package = "github.com/jasonlovesdoggo/velo/api/proto";
+
 service DeploymentService {
   rpc Deploy (DeployRequest) returns (DeployResponse);
   rpc Rollback (RollbackRequest) returns (GenericResponse);
