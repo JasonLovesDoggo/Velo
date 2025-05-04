@@ -11,7 +11,59 @@ Velo is a lightweight, self-hostable deployment and operations platform built on
 
 ## Getting Started
 
-[Documentation and installation instructions coming soon]
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/jasonlovesdoggo/velo.git
+   cd velo
+   ```
+
+2. Build the project:
+   ```bash
+   go build -o bin/velo-manager ./cmd/manager
+   go build -o bin/velo-client ./cmd/client
+   ```
+
+### Running the Server
+
+Start the management server:
+
+```bash
+./bin/velo-manager
+```
+
+The server will start on port 50051 by default.
+
+### Using the Client
+
+Deploy a service:
+
+```bash
+./bin/velo-client --action=deploy --service=my-service --image=nginx:latest
+```
+
+Check the status of a deployment:
+
+```bash
+./bin/velo-client --action=status --id=<deployment-id>
+```
+
+Rollback a deployment:
+
+```bash
+./bin/velo-client --action=rollback --id=<deployment-id>
+```
+
+### Running Tests
+
+Run the tests:
+
+```bash
+go test ./...
+```
+
+For more detailed documentation, see the [API Documentation](docs/api.md).
 
 ## Architecture
 
@@ -28,8 +80,9 @@ Velo follows a modular architecture with the following key components:
 ## Requirements
 
 - Docker Swarm cluster
-- Go 1.24.2 or later
-- [Additional requirements to be specified]
+- Go 1.20 or later
+- Docker Engine 20.10.0 or later
+- gRPC tools (for development)
 
 ## Contributing
 

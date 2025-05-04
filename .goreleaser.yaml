@@ -16,15 +16,20 @@ before:
     - go generate ./...
 
 builds:
-  - main: ./cmd/velo/
-    binary: velo-daemon
-    id: velo-daemon
-    ldflags:
-      - "-X 'github.com/jasonlovesdoggo/velo/pkg/version.Version={{.Tag}}'"
+  - main: ./cmd/manager/
+    binary: velo-manager
+    id: velo-manager-daemon
+
+  - main: ./cmd/worker/
+    binary: velo-worker
+    id: velo-worker-daemon
+
   - main: ./cmd/cli/
     id: cli
-    binary: velo
+    binary: veloctl
 
+    ldflags:
+      - "-X 'github.com/jasonlovesdoggo/velo/pkg/version.Version={{.Tag}}'"
     goos:
       - linux
       - windows

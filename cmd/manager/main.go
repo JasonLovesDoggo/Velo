@@ -7,10 +7,11 @@ import (
 
 	"github.com/jasonlovesdoggo/velo/internal/log"
 	"github.com/jasonlovesdoggo/velo/internal/orchestrator/manager"
+	"github.com/jasonlovesdoggo/velo/internal/server"
 )
 
 func main() {
-	log.Info("Starting Velo Swarm Manager Controller...")
+	log.Info("Starting Velo Management Server...")
 
 	// Create a new swarm manager
 	swarmManager, err := manager.NewSwarmManager()
@@ -32,12 +33,22 @@ func main() {
 		log.Info("Node details", "hostname", node.Hostname, "id", node.ID, "isManager", node.Manager)
 	}
 
+	// Create and start the gRPC server
+	deploymentServer := server.NewDeploymentServer(swarmManager)
+	if err := deploymentServer.Start(":50051"); err != nil {
+		log.Error("Failed to start gRPC server", "error", err)
+		swarmManager.Stop()
+		os.Exit(1)
+	}
+	log.Info("gRPC server started", "address", ":50051")
+
 	// Wait for termination signal
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh
 
-	// Stop the manager
+	// Stop the server and manager
+	deploymentServer.Stop()
 	swarmManager.Stop()
-	log.Info("Velo Swarm Manager Controller stopped")
+	log.Info("Velo Management Server stopped")
 }
