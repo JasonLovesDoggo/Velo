@@ -11,7 +11,7 @@ import (
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 	"github.com/jasonlovesdoggo/velo/internal/deployment"
-	"github.com/jasonlovesdoggo/velo/internal/logs"
+	"github.com/jasonlovesdoggo/velo/internal/log"
 	"github.com/jasonlovesdoggo/velo/pkg/core/node"
 )
 
@@ -58,7 +58,7 @@ func (m *SwarmManager) Start() error {
 			select {
 			case <-m.refreshTicker.C:
 				if err := m.RefreshNodes(); err != nil {
-					logs.Error("Error refreshing nodes", "error", err)
+					log.Error("Error refreshing nodes", "error", err)
 				}
 			case <-m.ctx.Done():
 				return
@@ -91,7 +91,7 @@ func (m *SwarmManager) InitSwarm(advertiseAddr string) (string, error) {
 
 	// Refresh nodes after init
 	if err := m.RefreshNodes(); err != nil {
-		logs.Warn("Failed to refresh nodes after swarm init", "error", err)
+		log.Warn("Failed to refresh nodes after swarm init", "error", err)
 	}
 
 	return swarmID, nil
@@ -193,7 +193,7 @@ func (m *SwarmManager) UpdateNodeLabels(nodeID string, labels map[string]string)
 
 	// Refresh nodes after update
 	if err := m.RefreshNodes(); err != nil {
-		logs.Warn("Failed to refresh nodes after label update", "error", err)
+		log.Warn("Failed to refresh nodes after label update", "error", err)
 	}
 
 	return nil
@@ -229,7 +229,7 @@ func (m *SwarmManager) updateNodeAvailability(nodeID string, availability swarm.
 
 	// Refresh nodes after update
 	if err := m.RefreshNodes(); err != nil {
-		logs.Warn("Failed to refresh nodes after availability update", "error", err)
+		log.Warn("Failed to refresh nodes after availability update", "error", err)
 	}
 
 	return nil
@@ -244,7 +244,7 @@ func (m *SwarmManager) RemoveNode(nodeID string, force bool) error {
 
 	// Refresh nodes after removal
 	if err := m.RefreshNodes(); err != nil {
-		logs.Warn("Failed to refresh nodes after node removal", "error", err)
+		log.Warn("Failed to refresh nodes after node removal", "error", err)
 	}
 
 	return nil
@@ -307,7 +307,7 @@ func (m *SwarmManager) UpdateService(serviceID string, def deployment.ServiceDef
 
 	// Log warnings if any
 	for _, warning := range response.Warnings {
-		logs.Warn("Warning during service update", "warning", warning)
+		log.Warn("Warning during service update", "warning", warning)
 	}
 
 	return nil
@@ -385,7 +385,7 @@ func (m *SwarmManager) ListServices() ([]deployment.DeploymentStatus, error) {
 	for _, service := range services {
 		status, err := m.GetServiceStatus(service.ID)
 		if err != nil {
-			logs.Warn("Failed to get status for service", "serviceID", service.ID, "error", err)
+			log.Warn("Failed to get status for service", "serviceID", service.ID, "error", err)
 			continue
 		}
 		result = append(result, status)

@@ -1,7 +1,7 @@
 package gateway
 
 import (
-	"log"
+	"github.com/jasonlovesdoggo/velo/internal/log"
 	"net/http"
 )
 
@@ -11,6 +11,6 @@ func Start(port string) error {
 		w.Write([]byte("OK"))
 	})
 
-	log.Println("Gateway listening on :" + port)
+	log.Info("Gateway listening", "port", port)
 	return http.ListenAndServe(":"+port, nil)
 }

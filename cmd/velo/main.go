@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/jasonlovesdoggo/velo/internal/gateway"
-	"log"
+	"github.com/jasonlovesdoggo/velo/internal/log"
 	"os"
 )
 
@@ -14,8 +14,9 @@ func main() {
 	}
 	fmt.Println(port)
 
-	log.Println("Starting FleetStack API Gateway on port", port)
+	log.Info("Starting FleetStack API Gateway", "port", port)
 	if err := gateway.Start(port); err != nil {
-		log.Fatal("Failed to start gateway:", err)
+		log.Error("Failed to start gateway", "error", err)
+		os.Exit(1)
 	}
 }

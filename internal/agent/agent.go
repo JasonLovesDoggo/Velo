@@ -8,7 +8,7 @@ import (
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
-	"github.com/jasonlovesdoggo/velo/internal/logs"
+	"github.com/jasonlovesdoggo/velo/internal/log"
 )
 
 // NewContainerAgent creates a new ContainerAgent
@@ -65,7 +65,7 @@ func (a *ContainerAgent) Start() error {
 			select {
 			case <-a.collectTicker.C:
 				if err := a.collectContainers(); err != nil {
-					logs.Error("Error collecting containers", "error", err)
+					log.Error("Error collecting containers", "error", err)
 				}
 			case <-a.ctx.Done():
 				return
@@ -80,7 +80,7 @@ func (a *ContainerAgent) Start() error {
 			select {
 			case <-a.healthTicker.C:
 				if err := a.checkContainerHealth(); err != nil {
-					logs.Error("Error checking container health", "error", err)
+					log.Error("Error checking container health", "error", err)
 				}
 			case <-a.ctx.Done():
 				return
@@ -88,7 +88,7 @@ func (a *ContainerAgent) Start() error {
 		}
 	}()
 
-	logs.Info("Container agent started",
+	log.Info("Container agent started",
 		"node", a.hostname, "nodeID", a.nodeID, "isManager", a.isManager)
 	return nil
 }
@@ -102,14 +102,14 @@ func (a *ContainerAgent) Stop() {
 		a.healthTicker.Stop()
 	}
 	a.cancel()
-	logs.Info("Container agent stopped", "node", a.hostname)
+	log.Info("Container agent stopped", "node", a.hostname)
 }
 
 // collectContainers collects information about running containers
 func (a *ContainerAgent) collectContainers() error {
 	// For now, just log that we're collecting containers
 	// In a real implementation, this would use the Docker API to list containers
-	logs.Info("Collecting container information", "node", a.hostname)
+	log.Info("Collecting container information", "node", a.hostname)
 
 	// Simulate container collection with a placeholder
 	a.containersMu.Lock()
@@ -132,7 +132,7 @@ func (a *ContainerAgent) collectContainers() error {
 func (a *ContainerAgent) checkContainerHealth() error {
 	// For now, just log that we're checking container health
 	// In a real implementation, this would use the Docker API to check container health
-	logs.Info("Checking container health", "node", a.hostname)
+	log.Info("Checking container health", "node", a.hostname)
 	return nil
 }
 
