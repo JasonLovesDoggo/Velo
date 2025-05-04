@@ -1,9 +1,8 @@
-// Root proto definition for service-to-service and gRPC Gateway
 syntax = "proto3";
 
 package velo;
 
-option go_package = "github.com/jasonlovesdoggo/velo/api/proto";
+option go_package = "velo/api/proto";
 
 service DeploymentService {
   rpc Deploy (DeployRequest) returns (DeployResponse);
