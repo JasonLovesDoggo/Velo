@@ -49,6 +49,10 @@ func Error(msg string, args ...any) {
 	defaultLogger.Error(msg, args...)
 }
 
+func Fatal(msg string, args ...any) {
+	Error(msg, args...)
+	os.Exit(1)
+}
 func With(args ...any) *slog.Logger {
 	return defaultLogger.With(args...)
 }

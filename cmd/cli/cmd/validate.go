@@ -1,8 +1,9 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
-	"log"
+	"github.com/jasonlovesdoggo/velo/internal/log"
 	"os"
 
 	"github.com/jasonlovesdoggo/velo/internal/config"
@@ -17,12 +18,18 @@ func init() {
 		Run: func(cmd *cobra.Command, args []string) {
 			pwd, err := os.Getwd()
 			if err != nil {
-				log.Fatalf("Failed to get working directory: %v", err)
+				log.Fatal("Failed to get working directory", err)
 			}
 			if _, err := config.LoadConfigFromFile(pwd); err != nil {
-				log.Fatalf("Invalid config: %v", err)
+				if errors.Is(err, config.ErrConfigNotFound) {
+					fmt.Printf("Config file not found. Please create a %s file.\n", config.FileName)
+				} else {
+					fmt.Printf("Config file is invalid: %v\n", err)
+				}
+
+			} else {
+				fmt.Printf("Config file is valid.")
 			}
-			fmt.Println("Config file is valid.")
 		},
 	}
 	rootCmd.AddCommand(validateCmd)
