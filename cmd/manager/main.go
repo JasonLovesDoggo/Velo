@@ -1,8 +1,10 @@
 package main
 
 import (
+	"github.com/jasonlovesdoggo/velo/pkg/core"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	"github.com/jasonlovesdoggo/velo/internal/log"
@@ -35,12 +37,13 @@ func main() {
 
 	// Create and start the gRPC server
 	deploymentServer := server.NewDeploymentServer(swarmManager)
-	if err := deploymentServer.Start(":50051"); err != nil {
+	portstring := strconv.Itoa(core.Port)
+	if err := deploymentServer.Start(":" + portstring); err != nil {
 		log.Error("Failed to start gRPC server", "error", err)
 		swarmManager.Stop()
 		os.Exit(1)
 	}
-	log.Info("gRPC server started", "address", ":50051")
+	log.Info("gRPC server started", "address", ":"+portstring)
 
 	// Wait for termination signal
 	sigCh := make(chan os.Signal, 1)

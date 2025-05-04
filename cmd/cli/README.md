@@ -55,7 +55,7 @@ This command tests a configuration file for validity.
 
 The following options can be used with any command:
 
-- `--server`: The server address in the format host:port (default: "localhost:50051")
+- `--server`: The server address in the format host:port (default: "localhost:37355")
 - `--timeout`: Timeout for API requests (default: 10s)
 
 ## Examples

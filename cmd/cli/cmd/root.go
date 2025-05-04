@@ -21,7 +21,7 @@ self-hostable deployment and operations platform built on top of Docker Swarm.`,
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&serverAddr, "server", "localhost:50051", "The server address in host:port format")
+	rootCmd.PersistentFlags().StringVar(&serverAddr, "server", "localhost:37355", "The server address in host:port format")
 	rootCmd.PersistentFlags().DurationVar(&timeout, "timeout", 10*time.Second, "Timeout for API requests")
 }
 

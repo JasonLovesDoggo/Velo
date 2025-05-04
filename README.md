@@ -33,7 +33,7 @@ Start the management server:
 ./bin/velo-manager
 ```
 
-The server will start on port 50051 by default.
+The server will start on port 37355 by default.
 
 Please see the [CLI documentation](./cmd/cli/README.md) for available commands and options.
 

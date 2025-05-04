@@ -153,14 +153,14 @@ The client implementation is in the `cmd/client/main.go` file. It provides a com
 ### Usage
 
 ```
-velo-client --server=localhost:50051 --action=deploy --service=my-service --image=nginx:latest
-velo-client --server=localhost:50051 --action=status --id=service-123
-velo-client --server=localhost:50051 --action=rollback --id=service-123
+velo-client --server=localhost:37355 --action=deploy --service=my-service --image=nginx:latest
+velo-client --server=localhost:37355 --action=status --id=service-123
+velo-client --server=localhost:37355 --action=rollback --id=service-123
 ```
 
 ### Options
 
-- `--server`: The address of the gRPC server in the format `host:port`. Default: `localhost:50051`.
+- `--server`: The address of the gRPC server in the format `host:port`. Default: `localhost:37355`.
 - `--action`: The action to perform: `deploy`, `status`, or `rollback`. Default: `deploy`.
 - `--service`: The name of the service to deploy. Required for the `deploy` action.
 - `--image`: The Docker image to deploy. Required for the `deploy` action.
@@ -188,7 +188,7 @@ if err := swarmManager.Start(); err != nil {
 
 // Create and start the gRPC server
 deploymentServer := server.NewDeploymentServer(swarmManager)
-if err := deploymentServer.Start(":50051"); err != nil {
+if err := deploymentServer.Start(":37355"); err != nil {
     log.Error("Failed to start gRPC server", "error", err)
     swarmManager.Stop()
     os.Exit(1)
