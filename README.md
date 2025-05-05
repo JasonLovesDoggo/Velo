@@ -9,6 +9,8 @@ Velo is a lightweight, self-hostable deployment and operations platform built on
 - **Production Ready**: Comprehensive observability with logging, metrics, and alerting capabilities
 - **Extensible**: Pluggable architecture supporting custom hooks and CI/CD integration
 
+# [ROADMAP](docs/roadmap.md)
+
 ## Getting Started
 
 ### Installation
