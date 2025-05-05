@@ -23,7 +23,7 @@ Velo is a lightweight, self-hostable deployment and operations platform built on
 
 2. Build the project:
    ```bash
-   go build -o bin/velo-manager ./cmd/manager
+   go build -o bin/velo ./cmd/velo
    go build -o bin/velo-client ./cmd/client
    ```
 
@@ -32,7 +32,13 @@ Velo is a lightweight, self-hostable deployment and operations platform built on
 Start the management server:
 
 ```bash
-./bin/velo-manager
+./bin/velo --manager
+```
+
+Or run as a worker:
+
+```bash
+./bin/velo
 ```
 
 The server will start on port 37355 by default.
