@@ -7,9 +7,9 @@ import (
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 	"github.com/jasonlovesdoggo/velo/internal/config"
+	"github.com/jasonlovesdoggo/velo/internal/log"
 	"github.com/jasonlovesdoggo/velo/internal/utils"
 	"github.com/jasonlovesdoggo/velo/pkg/core/node"
-	"log"
 )
 
 func DeployToSwarm(def config.ServiceDefinition) (string, error) {
@@ -66,7 +66,7 @@ func DeployToSwarm(def config.ServiceDefinition) (string, error) {
 
 func RollbackDeployment(id string) error {
 	// Placeholder for rollback logic
-	log.Printf("Rolling back deployment %s", id)
+	log.Info("Rolling back deployment", "id", id)
 	return nil
 }
 
