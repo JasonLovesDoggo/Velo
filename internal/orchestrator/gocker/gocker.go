@@ -8,6 +8,9 @@ import (
 var client *docker.Client
 
 func GetClient() *docker.Client {
+	if client != nil {
+		return client
+	}
 	client, err := docker.NewClientWithOpts(docker.FromEnv, docker.WithAPIVersionNegotiation())
 	if err != nil {
 		// todo: handle error properly once i learn what the errors can be...
