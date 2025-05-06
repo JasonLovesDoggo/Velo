@@ -5,19 +5,14 @@ import (
 	"encoding/json"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/client"
 	"github.com/jasonlovesdoggo/velo/internal/config"
 	"github.com/jasonlovesdoggo/velo/internal/log"
+	"github.com/jasonlovesdoggo/velo/internal/orchestrator/gocker"
 	"github.com/jasonlovesdoggo/velo/internal/utils"
 	"github.com/jasonlovesdoggo/velo/pkg/core/node"
 )
 
 func DeployToSwarm(def config.ServiceDefinition) (string, error) {
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		return "", err
-	}
-
 	// Create annotations with labels if defined
 	annotations := swarm.Annotations{
 		Name: def.Name,
@@ -57,7 +52,7 @@ func DeployToSwarm(def config.ServiceDefinition) (string, error) {
 		},
 	}
 
-	resp, err := cli.ServiceCreate(context.Background(), spec, types.ServiceCreateOptions{})
+	resp, err := gocker.GetClient().ServiceCreate(context.Background(), spec, types.ServiceCreateOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -71,11 +66,7 @@ func RollbackDeployment(id string) error {
 }
 
 func GetDeploymentStatus(id string) (config.DeploymentStatus, error) {
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		return config.DeploymentStatus{}, err
-	}
-	service, _, err := cli.ServiceInspectWithRaw(context.Background(), id, types.ServiceInspectOptions{})
+	service, _, err := gocker.GetClient().ServiceInspectWithRaw(context.Background(), id, types.ServiceInspectOptions{})
 	if err != nil {
 		return config.DeploymentStatus{}, err
 	}
@@ -89,11 +80,7 @@ func GetDeploymentStatus(id string) (config.DeploymentStatus, error) {
 }
 
 func ListNodes() ([]node.Info, error) {
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		return nil, err
-	}
-	swarmNodes, err := cli.NodeList(context.Background(), types.NodeListOptions{})
+	swarmNodes, err := gocker.GetClient().NodeList(context.Background(), types.NodeListOptions{})
 	if err != nil {
 		return nil, err
 	}
