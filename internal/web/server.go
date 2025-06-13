@@ -6,21 +6,51 @@ import (
 	"net/http"
 	"path/filepath"
 
+	"github.com/jasonlovesdoggo/velo/internal/auth"
 	"github.com/jasonlovesdoggo/velo/internal/config"
 	"github.com/jasonlovesdoggo/velo/internal/log"
 	"github.com/jasonlovesdoggo/velo/internal/orchestrator/manager"
 )
 
+// Request/Response structs
+type LoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type LoginResponse struct {
+	Status string `json:"status"`
+	Token  string `json:"token"`
+}
+
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
+type DeployRequest struct {
+	ServiceName string            `json:"serviceName"`
+	Image       string            `json:"image"`
+	Replicas    int               `json:"replicas"`
+	Environment map[string]string `json:"environment"`
+}
+
+type DeployResponse struct {
+	DeploymentID string `json:"deploymentId"`
+	Status       string `json:"status"`
+}
+
 // WebServer provides a web interface for Velo
 type WebServer struct {
-	manager manager.Manager
-	server  *http.Server
+	manager     manager.Manager
+	authService *auth.AuthService
+	server      *http.Server
 }
 
 // NewWebServer creates a new web server
-func NewWebServer(mgr manager.Manager, port string) *WebServer {
+func NewWebServer(mgr manager.Manager, authService *auth.AuthService, port string) *WebServer {
 	ws := &WebServer{
-		manager: mgr,
+		manager:     mgr,
+		authService: authService,
 	}
 
 	mux := http.NewServeMux()
@@ -30,14 +60,17 @@ func NewWebServer(mgr manager.Manager, port string) *WebServer {
 
 	// Pages
 	mux.HandleFunc("/", ws.handleHome)
-	mux.HandleFunc("/deployments", ws.handleDeployments)
-	mux.HandleFunc("/deploy", ws.handleDeploy)
-	mux.HandleFunc("/services", ws.handleServices)
+	mux.HandleFunc("/login", ws.handleLogin)
+	mux.HandleFunc("/deployments", ws.authRequired(ws.handleDeployments))
+	mux.HandleFunc("/deploy", ws.authRequired(ws.handleDeploy))
+	mux.HandleFunc("/services", ws.authRequired(ws.handleServices))
 
 	// API endpoints
-	mux.HandleFunc("/api/deployments", ws.handleAPIDeployments)
-	mux.HandleFunc("/api/deploy", ws.handleAPIDeploy)
-	mux.HandleFunc("/api/services", ws.handleAPIServices)
+	mux.HandleFunc("/api/auth/login", ws.handleAPILogin)
+	mux.HandleFunc("/api/auth/logout", ws.handleAPILogout)
+	mux.HandleFunc("/api/deployments", ws.authRequiredAPI(ws.handleAPIDeployments))
+	mux.HandleFunc("/api/deploy", ws.authRequiredAPI(ws.handleAPIDeploy))
+	mux.HandleFunc("/api/services", ws.authRequiredAPI(ws.handleAPIServices))
 
 	ws.server = &http.Server{
 		Addr:    ":" + port,
@@ -351,24 +384,25 @@ func (ws *WebServer) handleAPIDeployments(w http.ResponseWriter, r *http.Request
 
 func (ws *WebServer) handleAPIDeploy(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(ErrorResponse{Error: "Method not allowed"})
 		return
 	}
 
-	var req struct {
-		ServiceName string            `json:"serviceName"`
-		Image       string            `json:"image"`
-		Replicas    int               `json:"replicas"`
-		Environment map[string]string `json:"environment"`
-	}
+	var req DeployRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, fmt.Sprintf("Invalid JSON: %v", err), http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ErrorResponse{Error: fmt.Sprintf("Invalid JSON: %v", err)})
 		return
 	}
 
 	if req.ServiceName == "" || req.Image == "" {
-		http.Error(w, "Service name and image are required", http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ErrorResponse{Error: "Service name and image are required"})
 		return
 	}
 
@@ -387,19 +421,17 @@ func (ws *WebServer) handleAPIDeploy(w http.ResponseWriter, r *http.Request) {
 	// Deploy the service using the manager
 	deploymentID, err := ws.manager.DeployService(serviceDef)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Deployment failed: %v", err), http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(ErrorResponse{Error: fmt.Sprintf("Deployment failed: %v", err)})
 		return
-	}
-	response := struct {
-		DeploymentID string `json:"deploymentId"`
-		Status       string `json:"status"`
-	}{
-		DeploymentID: deploymentID,
-		Status:       "deployed",
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(DeployResponse{
+		DeploymentID: deploymentID,
+		Status:       "deployed",
+	})
 }
 
 func (ws *WebServer) handleAPIServices(w http.ResponseWriter, r *http.Request) {
@@ -427,4 +459,202 @@ func (ws *WebServer) handleStatic(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.NotFound(w, r)
 	}
+}
+
+// Authentication middleware
+func (ws *WebServer) authRequired(handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Check for session cookie
+		cookie, err := r.Cookie("velo_session")
+		if err != nil {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
+		}
+
+		// Validate token
+		_, err = ws.authService.ValidateToken(cookie.Value)
+		if err != nil {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
+		}
+
+		handler(w, r)
+	}
+}
+
+// API authentication middleware
+func (ws *WebServer) authRequiredAPI(handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Check for session cookie or Authorization header
+		var token string
+
+		// Try cookie first
+		if cookie, err := r.Cookie("velo_session"); err == nil {
+			token = cookie.Value
+		} else {
+			// Try Authorization header
+			auth := r.Header.Get("Authorization")
+			if auth != "" && len(auth) > 7 && auth[:7] == "Bearer " {
+				token = auth[7:]
+			}
+		}
+
+		if token == "" {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		// Validate token
+		_, err := ws.authService.ValidateToken(token)
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		handler(w, r)
+	}
+}
+
+// Login page handler
+func (ws *WebServer) handleLogin(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		ws.handleAPILogin(w, r)
+		return
+	}
+
+	tmpl := `<!DOCTYPE html>
+<html>
+<head>
+    <title>Login - Velo</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .login-container { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 100%; max-width: 400px; }
+        .logo { text-align: center; margin-bottom: 30px; }
+        .logo h1 { color: #333; font-size: 2.5em; margin: 0; font-weight: 300; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; }
+        input[type="text"], input[type="password"] { width: 100%; padding: 12px; border: 2px solid #e1e5e9; border-radius: 6px; font-size: 16px; transition: border-color 0.3s; }
+        input[type="text"]:focus, input[type="password"]:focus { outline: none; border-color: #667eea; }
+        button { width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; transition: background 0.3s; }
+        button:hover { background: #5a67d8; }
+        .error { color: #e53e3e; margin-top: 10px; display: none; }
+        .note { text-align: center; margin-top: 20px; color: #666; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <h1>🚀 Velo</h1>
+        </div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit">Login</button>
+            <div id="error" class="error"></div>
+        </form>
+        <div class="note">
+            Default credentials: admin / admin
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('error');
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                if (response.ok) {
+                    window.location.href = '/deployments';
+                } else {
+                    const result = await response.json();
+                    errorDiv.textContent = result.error || 'Login failed';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Login failed: ' + error.message;
+                errorDiv.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>`
+
+	w.Header().Set("Content-Type", "text/html")
+	fmt.Fprint(w, tmpl)
+}
+
+// API login handler
+func (ws *WebServer) handleAPILogin(w http.ResponseWriter, r *http.Request) {
+	var req LoginRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ErrorResponse{Error: "Invalid JSON"})
+		return
+	}
+
+	// Authenticate user
+	token, err := ws.authService.Authenticate(req.Username, req.Password)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(ErrorResponse{Error: "Invalid credentials"})
+		return
+	}
+
+	// Set session cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "velo_session",
+		Value:    token.Value,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false, // Set to true in production with HTTPS
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(LoginResponse{
+		Status: "success",
+		Token:  token.Value,
+	})
+}
+
+// API logout handler
+func (ws *WebServer) handleAPILogout(w http.ResponseWriter, r *http.Request) {
+	// Get token from cookie
+	cookie, err := r.Cookie("velo_session")
+	if err == nil {
+		// Revoke token
+		ws.authService.RevokeToken(cookie.Value)
+	}
+
+	// Clear cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "velo_session",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+	})
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "logged out"})
 }
