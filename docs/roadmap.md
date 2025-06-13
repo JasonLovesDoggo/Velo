@@ -5,49 +5,49 @@
 > _Goal: It boots. It deploys. It doesn't burst into flames._ > **Target User**: Developer building the platform
 > **Focus**: Core deployment logic, basic UI/API, local use
 
-- [ ] Docker Swarm / Nomad integration
-- [ ] Single-node install script (bash/ansible)
-- [ ] Web UI skeleton or CLI-only mode
-- [ ] Manual deployment definition (YAML/Compose)
-- [ ] Basic service CRUD (Create/Update/Delete)
-- [ ] Container status dashboard (running, error, restarting)
+- [x] Docker Swarm integration
+- [x] Single-node install script (bash/ansible)
+- [x] CLI-only mode 
+- [x] Manual deployment definition (TOML/YAML)
+- [x] Basic service CRUD (Create/Update/Delete)
+- [x] Container status dashboard (running, error, restarting)
 - [x] Persisting configs to disk or DB
-- [ ] Simple user login with static credentials (no OAuth yet)
+- [x] Simple user login with static credentials (no OAuth yet)
 
 ---
 
-## Beta Requirements
+## Beta Requirements 🚧 IN PROGRESS
 
 > _Goal: Tinkerable and safe for personal use_ > **Target User**: Homelabbers, dev teams, early adopters
 > **Focus**: Security, installation UX, better management
 
-- [ ] Automated install process
+- [x] Automated install process
 
-  - [ ] Interactive CLI installer or single-command bootstrapping
-  - [ ] Works on major distros (Ubuntu, Debian, Fedora)
+  - [x] Interactive CLI installer or single-command bootstrapping
+  - [x] Works on major distros (Ubuntu, Debian, OpenSUSE, Fedora, Arch, Alpine)
 
-- [ ] Security Improvements
+- [x] Security Improvements
 
   - [ ] Automated HTTPS certificate generation (Let's Encrypt)
   - [ ] Secure secrets storage (encrypted at rest)
-  - [ ] User authentication (basic OAuth + roles)
+  - [x] User authentication (basic static credentials)
   - [ ] SSH key or token-based node authentication
 
-- [ ] Improved Deployment UX
+- [x] Improved Deployment UX
 
-  - [ ] Web-based YAML editor with validation
+  - [x] Web-based deployment interface with forms
   - [ ] Template library (e.g. NGINX, PostgreSQL, Redis)
   - [ ] Git-based deployment sync (GitOps-lite)
 
-- [ ] Cluster Management
+- [x] Cluster Management
 
-  - [ ] Node health checks (CPU, RAM, Disk, status)
-  - [ ] Add/remove nodes via UI or CLI
-  - [ ] Labels/tags for grouping nodes
+  - [x] Node health checks (CPU, RAM, Disk, status)
+  - [x] Add/remove nodes via CLI 
+  - [x] Labels/tags for grouping nodes
 
-- [ ] Basic Clean-up / Rollback
+- [x] Basic Clean-up / Rollback
 
-  - [ ] Rollback to previous service version
+  - [x] Rollback to previous service version
   - [ ] Auto-cleanup of failed/stuck deployments
 
 ---
