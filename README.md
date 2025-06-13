@@ -24,7 +24,7 @@ Velo is a lightweight, self-hostable deployment and operations platform built on
 2. Build the project:
    ```bash
    go build -o bin/velo ./cmd/velo
-   go build -o bin/velo-client ./cmd/client
+   go build -o bin/velo-client ./cmd/cli
    ```
 
 ### Running the Server
