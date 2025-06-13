@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"syscall"
@@ -95,9 +97,35 @@ func runLogin(cmd *cobra.Command, args []string) {
 		fmt.Println()
 	}
 
-	// TODO: Implement actual authentication with server
-	fmt.Printf("Login functionality will authenticate %s with the server\n", authUsername)
-	fmt.Println("Authentication system ready for implementation")
+	// Create HTTP client and authenticate
+	client := &http.Client{Timeout: timeout}
+
+	loginData := map[string]string{
+		"username": authUsername,
+		"password": authPassword,
+	}
+
+	jsonData, _ := json.Marshal(loginData)
+
+	resp, err := client.Post(fmt.Sprintf("http://%s/api/auth/login", serverAddr), "application/json", strings.NewReader(string(jsonData)))
+	if err != nil {
+		fmt.Printf("Error connecting to server: %v\n", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 200 {
+		var result map[string]string
+		json.NewDecoder(resp.Body).Decode(&result)
+		fmt.Printf("Login successful! Token: %s\n", result["token"])
+
+		// Store token for future requests (TODO: implement token storage)
+		fmt.Println("Token storage not yet implemented - use web interface for persistent sessions")
+	} else {
+		var result map[string]string
+		json.NewDecoder(resp.Body).Decode(&result)
+		fmt.Printf("Login failed: %s\n", result["error"])
+	}
 }
 
 func runLogout(cmd *cobra.Command, args []string) {
