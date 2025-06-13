@@ -1,87 +1,100 @@
 # Velo
 
-Velo is a lightweight, self-hostable deployment and operations platform built on top of Docker Swarm. It's designed for small teams, homelab users, and edge deployments who want PaaS-like simplicity without the complexity of full Kubernetes managed services.
+A lightweight, self-hostable deployment platform built on Docker Swarm. PaaS simplicity without the complexity.
+
+## What is Velo?
+
+Velo transforms Docker Swarm into a user-friendly deployment platform for small teams and homelab enthusiasts. Deploy services through a clean web interface, powerful CLI, or API - all while maintaining the simplicity and reliability of Docker Swarm.
+
+## Quick Start
+
+### Automated Installation
+```bash
+curl -sSL https://raw.githubusercontent.com/jasonlovesdoggo/velo/main/install.sh | bash
+```
+
+### Manual Installation
+```bash
+# Clone and build
+git clone https://github.com/jasonlovesdoggo/velo.git
+cd velo
+make build
+
+# Start manager node
+./bin/velo --manager
+
+# Access web interface at http://localhost:8080
+# Default login: admin / admin
+```
 
 ## Features
 
-- **Multi-Interface Deployment**: Deploy services via CLI, Web UI, or chatbot integration
-- **Security-First**: Built-in configuration and secret management with automated certificate provisioning
-- **Production Ready**: Comprehensive observability with logging, metrics, and alerting capabilities
-- **Extensible**: Pluggable architecture supporting custom hooks and CI/CD integration
+- **Web Interface**: Deploy and manage services through a modern web UI
+- **CLI Tools**: Full-featured command line interface for automation
+- **Authentication**: Built-in user management and session handling
+- **Docker Swarm**: Leverages proven container orchestration
+- **State Management**: Persistent service configuration and deployment history
 
-# [ROADMAP](docs/roadmap.md)
+## Usage
 
-## Getting Started
+### Deploy via Web UI
+1. Navigate to `http://localhost:8080`
+2. Login with default credentials (admin/admin)
+3. Use the Deploy Service form to create new deployments
 
-### Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/jasonlovesdoggo/velo.git
-   cd velo
-   ```
-
-2. Build the project:
-   ```bash
-   go build -o bin/velo ./cmd/velo
-   go build -o bin/velo-client ./cmd/cli
-   ```
-
-### Running the Server
-
-Start the management server:
-
+### Deploy via CLI
 ```bash
-./bin/velo --manager
+# Deploy a service
+./bin/veloctl deploy --name nginx --image nginx:latest --replicas 2
+
+# Check status
+./bin/veloctl status nginx
+
+# Scale service
+./bin/veloctl scale nginx --replicas 5
 ```
 
-Or run as a worker:
-
+### Deploy via API
 ```bash
-./bin/velo
+curl -X POST http://localhost:37355/api/deploy \
+  -H "Content-Type: application/json" \
+  -d '{"serviceName":"nginx","image":"nginx:latest","replicas":1}'
 ```
-
-The server will start on port 37355 by default.
-
-Please see the [CLI documentation](./cmd/cli/README.md) for available commands and options.
-
-
-### Running Tests
-
-Run the tests:
-
-```bash
-go test ./...
-```
-
-For more detailed documentation, see the [API Documentation](docs/api.md).
 
 ## Architecture
 
-Velo follows a modular architecture with the following key components:
-
-- **Control Plane**: Handles API gateway, service management, and core orchestration
-- **Management Node**: Manages logging, backups, and configuration
-- **Container Hosts**: Runs services with integrated metrics collection
-
-## Development Status
-
-🚧 This project is currently under active development. Features and APIs may change.
+- **Server** (`velo`): Main application with manager and worker modes
+- **CLI** (`veloctl`): Client interface for deployments and management
+- **Web Interface**: Built-in HTTP server for browser-based management
+- **gRPC API**: High-performance API for programmatic access
 
 ## Requirements
 
-- Docker Swarm cluster
-- Go 1.20 or later
-- Docker Engine 20.10.0 or later
-- gRPC tools (for development)
+- Docker 20.10+ with Swarm mode enabled
+- Go 1.24+ (for building from source)
+- Linux/macOS (Windows support coming soon)
 
-## Contributing
+## Development
 
-We welcome contributions! Please see our contributing guidelines (coming soon) for more details.
+```bash
+# Install dependencies
+make deps
+
+# Run tests
+make test
+
+# Start development server
+make dev
+
+# View all available commands
+make help
+```
+
+## Status
+
+Velo is production-ready for small to medium deployments. Active development continues with new features being added regularly. See [roadmap](docs/roadmap.md) for planned features.
 
 ## License
-[AGPLv3](LICENSE)
 
-## Support
+AGPL-3.[AGPLv3](LICENSE)
 
-Please contact me @ velo[at]jasoncameron.dev for info and support
