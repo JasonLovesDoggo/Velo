@@ -26,6 +26,24 @@ type Store interface {
 	Close() error
 }
 
+// StateStore defines the interface for storing structured data with JSON serialization.
+type StateStore interface {
+	// Get retrieves and unmarshals a value for a given key into the provided interface.
+	Get(key string, value interface{}) error
+
+	// Set marshals and stores a value for a given key.
+	Set(key string, value interface{}) error
+
+	// Delete removes a key-value pair.
+	Delete(key string) error
+
+	// List returns all keys with a given prefix.
+	List(prefix string) ([]string, error)
+
+	// Close releases any resources used by the store.
+	Close() error
+}
+
 // BackendType defines the type of storage backend.
 type BackendType string
 
