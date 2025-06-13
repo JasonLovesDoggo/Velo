@@ -11,22 +11,24 @@ import (
 	"github.com/jasonlovesdoggo/velo/internal/log"
 	"github.com/jasonlovesdoggo/velo/internal/orchestrator/manager"
 	"github.com/jasonlovesdoggo/velo/internal/server"
+	"github.com/jasonlovesdoggo/velo/internal/web"
 	"github.com/jasonlovesdoggo/velo/pkg/core"
 )
 
 func main() {
 	// Parse command line flags
 	isManager := flag.Bool("manager", false, "Run as manager daemon")
+	webPort := flag.String("web-port", "8080", "Web interface port")
 	flag.Parse()
 
 	if *isManager {
-		runManager()
+		runManager(*webPort)
 	} else {
 		runWorker()
 	}
 }
 
-func runManager() {
+func runManager(webPort string) {
 	log.Info("Starting Velo Management Server...")
 
 	// Create a new swarm manager
@@ -59,13 +61,25 @@ func runManager() {
 	}
 	log.Info("gRPC server started", "address", ":"+portstring)
 
+	// Create and start the web server
+	webServer := web.NewWebServer(swarmManager, webPort)
+	go func() {
+		if err := webServer.Start(); err != nil {
+			log.Error("Failed to start web server", "error", err)
+		}
+	}()
+	log.Info("Web server started", "address", ":"+webPort)
+
 	// Wait for termination signal
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh
 
-	// Stop the server and manager
+	// Stop the servers and manager
 	deploymentServer.Stop()
+	if err := webServer.Stop(); err != nil {
+		log.Error("Error stopping web server", "error", err)
+	}
 	swarmManager.Stop()
 	log.Info("Velo Management Server stopped")
 }
