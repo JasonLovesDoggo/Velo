@@ -3,8 +3,8 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"log"
 
-	"github.com/jasonlovesdoggo/velo/internal/log"
 	"github.com/jasonlovesdoggo/velo/pkg/client"
 	"github.com/spf13/cobra"
 )
@@ -31,13 +31,13 @@ func runRollback(cmd *cobra.Command, args []string) {
 
 	c, err := client.NewClient(serverAddr)
 	if err != nil {
-		log.Fatal("Failed to create client", "err", err)
+		log.Fatalf("Failed to create client: %v", err)
 	}
 	defer c.Close()
 
 	resp, err := c.Rollback(ctx, rollbackID)
 	if err != nil {
-		log.Fatal("Failed to rollback deployment", "err", err)
+		log.Fatalf("Failed to rollback deployment: %v", err)
 	}
 
 	fmt.Printf("Rollback %s: %s\n",
