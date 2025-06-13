@@ -8,9 +8,11 @@ import (
 	"syscall"
 
 	"github.com/jasonlovesdoggo/velo/internal/agent"
+	"github.com/jasonlovesdoggo/velo/internal/auth"
 	"github.com/jasonlovesdoggo/velo/internal/log"
 	"github.com/jasonlovesdoggo/velo/internal/orchestrator/manager"
 	"github.com/jasonlovesdoggo/velo/internal/server"
+	"github.com/jasonlovesdoggo/velo/internal/state"
 	"github.com/jasonlovesdoggo/velo/internal/web"
 	"github.com/jasonlovesdoggo/velo/pkg/core"
 )
@@ -30,6 +32,20 @@ func main() {
 
 func runManager(webPort string) {
 	log.Info("Starting Velo Management Server...")
+
+	// Initialize state store
+	stateStore, err := state.NewDefaultStateStore()
+	if err != nil {
+		log.Error("Failed to create state store", "error", err)
+		os.Exit(1)
+	}
+
+	// Initialize auth service
+	authService := auth.NewAuthService(stateStore)
+	if err := authService.Initialize(); err != nil {
+		log.Error("Failed to initialize auth service", "error", err)
+		os.Exit(1)
+	}
 
 	// Create a new swarm manager
 	swarmManager, err := manager.NewSwarmManager()
@@ -52,7 +68,7 @@ func runManager(webPort string) {
 	}
 
 	// Create and start the gRPC server
-	deploymentServer := server.NewDeploymentServer(swarmManager)
+	deploymentServer := server.NewDeploymentServer(swarmManager, authService)
 	portstring := strconv.Itoa(core.Port)
 	if err := deploymentServer.Start(":" + portstring); err != nil {
 		log.Error("Failed to start gRPC server", "error", err)
@@ -62,7 +78,7 @@ func runManager(webPort string) {
 	log.Info("gRPC server started", "address", ":"+portstring)
 
 	// Create and start the web server
-	webServer := web.NewWebServer(swarmManager, webPort)
+	webServer := web.NewWebServer(swarmManager, authService, webPort)
 	go func() {
 		if err := webServer.Start(); err != nil {
 			log.Error("Failed to start web server", "error", err)
@@ -81,6 +97,7 @@ func runManager(webPort string) {
 		log.Error("Error stopping web server", "error", err)
 	}
 	swarmManager.Stop()
+	stateStore.Close()
 	log.Info("Velo Management Server stopped")
 }
 

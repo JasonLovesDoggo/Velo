@@ -60,7 +60,11 @@ func (a *AuthService) Initialize() error {
 
 	// Create default admin user if no users exist
 	if len(users) == 0 {
-		defaultPassword := "admin" // TODO: Generate random password
+		// Use simple password for development, random for production
+		// TODO: Detect environment or use config flag
+		defaultPassword := "admin" // For development ease
+		// defaultPassword := generateRandomPassword() // Uncomment for production
+
 		hashedPassword, err := a.hashPassword(defaultPassword)
 		if err != nil {
 			return fmt.Errorf("failed to hash default password: %w", err)
@@ -80,7 +84,11 @@ func (a *AuthService) Initialize() error {
 		}
 
 		log.Info("Created default admin user", "username", "admin", "password", defaultPassword)
-		log.Warn("Please change the default admin password immediately!")
+		if defaultPassword == "admin" {
+			log.Warn("Using default password 'admin' - change this in production!")
+		} else {
+			log.Warn("Please save this randomly generated admin password!")
+		}
 	}
 
 	return nil
