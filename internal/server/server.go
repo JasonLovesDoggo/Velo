@@ -6,6 +6,7 @@ import (
 	"net"
 
 	"github.com/jasonlovesdoggo/velo/api/proto"
+	"github.com/jasonlovesdoggo/velo/internal/auth"
 	"github.com/jasonlovesdoggo/velo/internal/config"
 	"github.com/jasonlovesdoggo/velo/internal/log"
 	"github.com/jasonlovesdoggo/velo/internal/orchestrator/manager"
@@ -15,15 +16,21 @@ import (
 // DeploymentServer implements the proto.DeploymentServiceServer interface
 type DeploymentServer struct {
 	proto.UnimplementedDeploymentServiceServer
-	manager manager.Manager
-	server  *grpc.Server
+	manager     manager.Manager
+	authService *auth.AuthService
+	server      *grpc.Server
 }
 
 // NewDeploymentServer creates a new DeploymentServer
-func NewDeploymentServer(manager manager.Manager) *DeploymentServer {
+func NewDeploymentServer(manager manager.Manager, authService *auth.AuthService) *DeploymentServer {
+	server := grpc.NewServer(
+		grpc.UnaryInterceptor(authService.AuthInterceptor),
+	)
+
 	return &DeploymentServer{
-		manager: manager,
-		server:  grpc.NewServer(),
+		manager:     manager,
+		authService: authService,
+		server:      server,
 	}
 }
 
